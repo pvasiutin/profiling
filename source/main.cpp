@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <memory>
 #include <fstream>
 #include <filesystem>
@@ -18,14 +17,7 @@ struct Foo
     }
 };
 
-void printTimeElapsed(const char * label, uint64_t scope_bein, uint64_t scope_end, uint64_t total_elapsed)
-{
-    uint64_t elapsed = scope_end - scope_bein;
-    double percent = 100.0 * (double(elapsed) / double(total_elapsed));
-    printf("%s: %llu (%0.2f%%)\n", label, elapsed, percent);
-}
-
-void unique_ptr_call()
+void uniquePtrCall()
 {
     TimeFunction();
     for (uint64_t i = 0; i < 1000; ++i)
@@ -34,13 +26,13 @@ void unique_ptr_call()
     }
 }
 
-void printf_call()
+void printfCall()
 {
     TimeFunction();
     printf("Resulted counter: %llu\n", uint64_t(69));
 }
 
-void write_file()
+void writeFile()
 {
     TimeFunction();
     std::ofstream ofs("test_file.txt");
@@ -48,7 +40,7 @@ void write_file()
     ofs.close();
 }
 
-void remove_file()
+void removeFile()
 {
     TimeFunction();
     std::filesystem::remove("test_file.txt");
@@ -62,9 +54,7 @@ int main(int arg_count, char** args)
         milliseconds_to_wait = atol(args[1]);
     }
 
-    auto cpu_frequency = metrics::calculateCpuFrequency(milliseconds_to_wait);
-
-    const auto prof_start = metrics::readCpuTimer();
+    metrics::beginProfile(milliseconds_to_wait);
 
     TimeZoneBegin(for_loop);
     uint64_t counter = 0;
@@ -74,20 +64,14 @@ int main(int arg_count, char** args)
     }
     TimeZoneEnd(for_loop);
 
-    printf_call();
-    unique_ptr_call();
-    write_file();
-    remove_file();
+    printfCall();
+    uniquePtrCall();
+    writeFile();
+    removeFile();
 
-    const auto prof_end = metrics::readCpuTimer();
-    const auto prof_total = prof_end - prof_start;
+    metrics::endProfile();
 
-    if (cpu_frequency)
-    {
-        printf("\nTotal time: %0.4fms (CPU: %.2fGHz)\n", metrics::cpuTimerToMilliseconds(prof_total, cpu_frequency), double(cpu_frequency) / 1000000000);
-    }
-
-    metrics::printScopes(prof_total);
+    metrics::printStats();
 
     return 0;
 }

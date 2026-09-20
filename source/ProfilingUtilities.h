@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 
 #include "PlatformMetrics.h"
 
@@ -20,8 +21,8 @@ public:
     void close();
 
 private:
-    size_t scope_index_{InvalidKey};
     bool already_closed_{false};
+    size_t scope_index_{InvalidKey};
 };
 
 struct ScopeData
@@ -30,8 +31,22 @@ struct ScopeData
     std::string name;
 };
 
+struct Profiler
+{
+    uint64_t begin{0};
+    uint64_t elapsed{0};
+
+    uint64_t cpu_frequency{0};
+
+    std::vector<ScopeData> scope_data_values;
+};
+
+void beginProfile(uint64_t milliseconds_to_wait);
+void endProfile();
+
 size_t beginScope(const char* name);
-void printScopes(uint64_t total_elapsed);
+
+void printStats();
 
 }
 

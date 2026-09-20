@@ -7,7 +7,7 @@
 namespace metrics
 {
 
-static std::vector<ScopeData> ScopeDataValues;
+static Profiler GlobalProfiler;
 
 namespace
 {
@@ -37,29 +37,49 @@ void Scope::close()
 
     if (scope_index_ != InvalidKey)
     {
-        auto& scoped_data = ScopeDataValues[scope_index_];
+        auto& scoped_data = GlobalProfiler.scope_data_values[scope_index_];
         scoped_data.elapsed = scope_end - scoped_data.elapsed;
     }
 
     already_closed_ = true;
 }
 
-size_t beginScope(const char* name)
+void beginProfile(uint64_t milliseconds_to_wait)
+{
+    GlobalProfiler.cpu_frequency = metrics::calculateCpuFrequency(milliseconds_to_wait);
+    GlobalProfiler.scope_data_values.reserve(4096);
+    GlobalProfiler.begin = readCpuTimer();
+}
+
+void endProfile()
+{
+    GlobalProfiler.elapsed = readCpuTimer() - GlobalProfiler.begin;
+}
+
+size_t beginScope(const char *name)
 {
     uint64_t scope_start = readCpuTimer();
 
     ScopeData data;
     data.elapsed = scope_start;
     data.name = name;
-    ScopeDataValues.emplace_back(std::move(data));
+    GlobalProfiler.scope_data_values.emplace_back(std::move(data));
 
-    return ScopeDataValues.size() - 1;
+    return GlobalProfiler.scope_data_values.size() - 1;
 }
 
-void printScopes(uint64_t total_elapsed)
+void printStats()
 {
+    uint64_t total_elapsed = GlobalProfiler.elapsed;
+    uint64_t cpu_frequency = GlobalProfiler.cpu_frequency;
+
+    if (cpu_frequency)
+    {
+        printf("\nTotal time: %0.4fms (CPU: %.2fGHz)\n", metrics::cpuTimerToMilliseconds(total_elapsed, cpu_frequency), double(cpu_frequency) / 1000000000);
+    }
+
     uint64_t total_scopes_elapsed{0};
-    for (const auto& scope : ScopeDataValues)
+    for (const auto& scope : GlobalProfiler.scope_data_values)
     {
         printTimeElapsed(scope.name.c_str(), scope.elapsed, total_elapsed);
         total_scopes_elapsed += scope.elapsed;

@@ -71,17 +71,13 @@ void endProfile()
 
 void beginScope(const uint32_t* scope_addr, const char* name)
 {
-    uint64_t scope_start = readCpuTimer();
-
     auto& keys = GlobalProfiler.scope_data_keys;
-    auto& values = GlobalProfiler.scope_data_values;
-
-    ScopeData data;
-    data.elapsed = scope_start;
-    data.name = name;
-
-    values.emplace_back(std::move(data));
     keys.push_back(scope_addr);
+
+    auto& values = GlobalProfiler.scope_data_values;
+    auto& data = values.emplace_back();
+    data.name = name;
+    data.elapsed = readCpuTimer();;
 }
 
 void printStats()

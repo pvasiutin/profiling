@@ -11,14 +11,16 @@ namespace metrics
 
 class Scope
 {
+    static const size_t InvalidKey = size_t(-1);
+
 public:
-    Scope(const uint32_t* map_key);
+    Scope(size_t scope_index);
     ~Scope();
 
     void close();
 
 private:
-    const uint32_t* key_;;
+    size_t scope_index_{InvalidKey};
     bool already_closed_{false};
 };
 
@@ -28,7 +30,7 @@ struct ScopeData
     std::string name;
 };
 
-void beginScope(const uint32_t* scope_addr, const char* name);
+size_t beginScope(const char* name);
 void printScopes(uint64_t total_elapsed);
 
 }
@@ -36,14 +38,9 @@ void printScopes(uint64_t total_elapsed);
 #define ConcatImpl(x, y) x##y
 #define Concat(x, y) ConcatImpl(x, y)
 
-#define TimeBlock(block_name) static uint32_t Concat(var_, __LINE__){0};    \
-    metrics::beginScope(&Concat(var_, __LINE__), block_name);               \
-    metrics::Scope Concat(scope_, __LINE__)(&Concat(var_, __LINE__))
+#define TimeBlock(block_name) metrics::Scope Concat(scope_, __LINE__)(metrics::beginScope(block_name))
 
 #define TimeFunction() TimeBlock(__func__)
 
-#define TimeZoneBegin(zone_name) static uint32_t Concat(var_, __LINE__){0};    \
-    metrics::beginScope(&Concat(var_, __LINE__), #zone_name);                   \
-    metrics::Scope Concat(scope_, zone_name)(&Concat(var_, __LINE__))
-
+#define TimeZoneBegin(zone_name) metrics::Scope Concat(scope_, zone_name)(metrics::beginScope(#zone_name))
 #define TimeZoneEnd(zone_name) Concat(scope_, zone_name).close()

@@ -20,7 +20,7 @@ void printTimeElapsed(const char * label, uint64_t elapsed, uint64_t total_elaps
 
 }
 
-Scope::Scope(size_t scope_index) : scope_index_{scope_index}
+Scope::Scope(const uint32_t *map_key) : key_{map_key}
 {}
 
 Scope::~Scope()
@@ -35,9 +35,21 @@ void Scope::close()
 {
     uint64_t scope_end = readCpuTimer();
 
-    if (scope_index_ != InvalidKey)
+    size_t existing_key = InvalidKey;
+    const auto& keys = GlobalProfiler.scope_data_keys;
+    for (size_t key_index = 0; key_index < keys.size(); ++key_index)
     {
-        auto& scoped_data = GlobalProfiler.scope_data_values[scope_index_];
+        if (keys[key_index] == key_)
+        {
+            existing_key = key_index;
+            break;
+        }
+    }
+
+    auto& values = GlobalProfiler.scope_data_values;
+    if (existing_key != InvalidKey)
+    {
+        auto& scoped_data = values[existing_key];
         scoped_data.elapsed = scope_end - scoped_data.elapsed;
     }
 
@@ -47,7 +59,8 @@ void Scope::close()
 void beginProfile(uint64_t milliseconds_to_wait)
 {
     GlobalProfiler.cpu_frequency = metrics::calculateCpuFrequency(milliseconds_to_wait);
-    GlobalProfiler.scope_data_values.reserve(4096);
+    GlobalProfiler.scope_data_values.reserve(1024);
+    GlobalProfiler.scope_data_keys.reserve(1024);
     GlobalProfiler.begin = readCpuTimer();
 }
 
@@ -56,16 +69,19 @@ void endProfile()
     GlobalProfiler.elapsed = readCpuTimer() - GlobalProfiler.begin;
 }
 
-size_t beginScope(const char *name)
+void beginScope(const uint32_t* scope_addr, const char* name)
 {
     uint64_t scope_start = readCpuTimer();
+
+    auto& keys = GlobalProfiler.scope_data_keys;
+    auto& values = GlobalProfiler.scope_data_values;
 
     ScopeData data;
     data.elapsed = scope_start;
     data.name = name;
-    GlobalProfiler.scope_data_values.emplace_back(std::move(data));
 
-    return GlobalProfiler.scope_data_values.size() - 1;
+    values.emplace_back(std::move(data));
+    keys.push_back(scope_addr);
 }
 
 void printStats()

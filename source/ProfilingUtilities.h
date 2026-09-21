@@ -12,9 +12,9 @@ namespace metrics
 
 class Scope
 {
+public:
     static const size_t InvalidKey = size_t(-1);
 
-public:
     Scope(const uint32_t* map_key);
     ~Scope();
 
@@ -28,6 +28,8 @@ private:
 struct ScopeData
 {
     uint64_t elapsed{0};
+    uint64_t hit_count{0};
+
     std::string name;
 };
 

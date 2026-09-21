@@ -18,6 +18,25 @@ void printTimeElapsed(const char * label, uint64_t elapsed, uint64_t total_elaps
     printf("%s: %llu (%0.2f%%)\n", label, elapsed, percent);
 }
 
+void printTimeElapsed(const ScopeData& data, uint64_t total_elapsed)
+{
+    double percent = 100.0 * (double(data.elapsed) / double(total_elapsed));
+    printf("%s[%llu]: %llu (%0.2f%%)\n", data.name.c_str(), data.hit_count, data.elapsed, percent);
+}
+
+size_t findExistingKeyIndex(const uint32_t* key)
+{
+    const auto& keys = GlobalProfiler.scope_data_keys;
+    for (size_t key_index = 0; key_index < keys.size(); ++key_index)
+    {
+        if (keys[key_index] == key)
+        {
+            return key_index;
+        }
+    }
+    return Scope::InvalidKey;
+}
+
 }
 
 Scope::Scope(const uint32_t *map_key) : key_{map_key}
@@ -35,22 +54,13 @@ void Scope::close()
 {
     uint64_t scope_end = readCpuTimer();
 
-    size_t existing_key = InvalidKey;
-    const auto& keys = GlobalProfiler.scope_data_keys;
-    for (size_t key_index = 0; key_index < keys.size(); ++key_index)
-    {
-        if (keys[key_index] == key_)
-        {
-            existing_key = key_index;
-            break;
-        }
-    }
-
-    auto& values = GlobalProfiler.scope_data_values;
+    const auto existing_key = findExistingKeyIndex(key_);
     if (existing_key != InvalidKey)
     {
+        auto& values = GlobalProfiler.scope_data_values;
         auto& scoped_data = values[existing_key];
         scoped_data.elapsed = scope_end - scoped_data.elapsed;
+        scoped_data.hit_count += 1;
     }
 
     already_closed_ = true;
@@ -71,13 +81,19 @@ void endProfile()
 
 void beginScope(const uint32_t* scope_addr, const char* name)
 {
-    auto& keys = GlobalProfiler.scope_data_keys;
-    keys.push_back(scope_addr);
+    if (const auto existing_key = findExistingKeyIndex(scope_addr); existing_key != Scope::InvalidKey)
+    {
+        GlobalProfiler.scope_data_values[existing_key].elapsed = readCpuTimer();
+    }
+    else
+    {
+        auto& keys = GlobalProfiler.scope_data_keys;
+        keys.push_back(scope_addr);
 
-    auto& values = GlobalProfiler.scope_data_values;
-    auto& data = values.emplace_back();
-    data.name = name;
-    data.elapsed = readCpuTimer();;
+        auto& data = GlobalProfiler.scope_data_values.emplace_back();
+        data.name = name;
+        data.elapsed = readCpuTimer();
+    }
 }
 
 void printStats()
@@ -93,7 +109,7 @@ void printStats()
     uint64_t total_scopes_elapsed{0};
     for (const auto& scope : GlobalProfiler.scope_data_values)
     {
-        printTimeElapsed(scope.name.c_str(), scope.elapsed, total_elapsed);
+        printTimeElapsed(scope, total_elapsed);
         total_scopes_elapsed += scope.elapsed;
     }
     printTimeElapsed("Scopes total", total_scopes_elapsed, total_elapsed);

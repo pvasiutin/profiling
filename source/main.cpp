@@ -22,6 +22,7 @@ void uniquePtrCall()
     TimeFunction();
     for (uint64_t i = 0; i < 1000; ++i)
     {
+        TimeBlock("makeUnique");
         std::unique_ptr unique_foo = std::make_unique<Foo>();
     }
 }
@@ -37,6 +38,7 @@ void writeFile()
     TimeFunction();
     std::ofstream ofs("test_file.txt");
     ofs << "kek";
+    TimeBlock("ofsClose");
     ofs.close();
 }
 
@@ -56,13 +58,13 @@ int main(int arg_count, char** args)
 
     metrics::beginProfile(milliseconds_to_wait);
 
-    TimeZoneBegin(for_loop);
+    TimeZoneBegin(forLoop);
     uint64_t counter = 0;
     for (uint64_t i = 0; i < 1000; ++i)
     {
         counter += i;
     }
-    TimeZoneEnd(for_loop);
+    TimeZoneEnd(forLoop);
 
     printfCall();
     uniquePtrCall();

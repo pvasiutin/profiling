@@ -68,19 +68,24 @@ void Scope::close()
     uint64_t elapsed = readCpuTimer() - begin;
 
     GlobalParent = parent_key_;
-    const auto existing_parent_key = findExistingKeyIndex(parent_key_);
-    if (existing_parent_key != InvalidKey)
-    {
-        auto& parent_scoped_data = GlobalProfiler.scope_data_values[existing_parent_key];
-        parent_scoped_data.elapsed_children += elapsed;
-    }
 
-    const auto existing_key = findExistingKeyIndex(key_);
-    if (existing_key != InvalidKey)
+    const auto& keys = GlobalProfiler.scope_data_keys;
+    for (size_t key_index = 0; key_index < keys.size(); ++key_index)
     {
-        auto& scoped_data = GlobalProfiler.scope_data_values[existing_key];
-        scoped_data.elapsed += elapsed;
-        scoped_data.hit_count += 1;
+        const auto key = keys[key_index];
+        if (key == parent_key_)
+        {
+            auto& parent_scoped_data = GlobalProfiler.scope_data_values[key_index];
+            parent_scoped_data.elapsed_children += elapsed;
+        }
+        else if (key == key_)
+        {
+            auto& key_scoped_data = GlobalProfiler.scope_data_values[key_index];
+            key_scoped_data.elapsed += elapsed;
+            key_scoped_data.hit_count += 1;
+            // NOTE: parent should already be found it is obvioulsy stored earlier in array of keys
+            break;
+        }
     }
 
     already_closed_ = true;

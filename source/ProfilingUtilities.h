@@ -22,12 +22,18 @@ public:
 
 private:
     bool already_closed_{false};
+
+    uint64_t begin{0};
+
     const uint32_t* key_;
+    const uint32_t* parent_key_;
 };
 
 struct ScopeData
 {
     uint64_t elapsed{0};
+    uint64_t elapsed_children{0};
+
     uint64_t hit_count{0};
 
     std::string name;

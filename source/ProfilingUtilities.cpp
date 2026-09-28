@@ -107,7 +107,7 @@ void endProfile()
 void beginScope(const uint32_t* scope_addr, const char* name)
 {
     const auto existing_key = findExistingKeyIndex(scope_addr);
-    if ( existing_key == Scope::InvalidKey)
+    if (existing_key == Scope::InvalidKey)
     {
         auto& keys = GlobalProfiler.scope_data_keys;
         keys.push_back(scope_addr);

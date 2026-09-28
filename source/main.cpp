@@ -1,6 +1,7 @@
 #include <memory>
 #include <fstream>
 #include <filesystem>
+#include <mutex>
 
 #include "PlatformMetrics.h"
 #include "ProfilingUtilities.h"
@@ -48,6 +49,23 @@ void removeFile()
     std::filesystem::remove("test_file.txt");
 }
 
+void recursiveCall(size_t times)
+{
+    TimeFunction();
+    if (times > 0)
+    {
+        recursiveCall(times - 1);
+    }
+}
+
+static std::mutex m;
+void wrappedRecursion(size_t times)
+{
+    TimeFunction();
+    std::lock_guard lock(m);
+    recursiveCall(times);
+}
+
 int main(int arg_count, char** args)
 {
     uint64_t milliseconds_to_wait = 100;
@@ -70,6 +88,8 @@ int main(int arg_count, char** args)
     uniquePtrCall();
     writeFile();
     removeFile();
+    recursiveCall(1000);
+    wrappedRecursion(1000);
 
     metrics::endProfile();
 

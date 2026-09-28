@@ -78,13 +78,11 @@ void Scope::close()
             auto& parent_scoped_data = GlobalProfiler.scope_data_values[key_index];
             parent_scoped_data.elapsed_children += elapsed;
         }
-        else if (key == key_)
+        if (key == key_)
         {
             auto& key_scoped_data = GlobalProfiler.scope_data_values[key_index];
             key_scoped_data.elapsed += elapsed;
             key_scoped_data.hit_count += 1;
-            // NOTE: parent should already be found it is obvioulsy stored earlier in array of keys
-            break;
         }
     }
 

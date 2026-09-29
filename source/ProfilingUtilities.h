@@ -23,7 +23,8 @@ public:
 private:
     bool already_closed_{false};
 
-    uint64_t begin{0};
+    uint64_t begin_{0};
+    uint64_t old_elapsed_inclusive_{0};
 
     const uint32_t* key_;
     const uint32_t* parent_key_;
@@ -31,8 +32,8 @@ private:
 
 struct ScopeData
 {
-    uint64_t elapsed{0};
-    uint64_t elapsed_children{0};
+    uint64_t elapsed_exclusive{0}; // WITHOUT children
+    uint64_t elapsed_inclusive{0}; // WITH children
 
     uint64_t hit_count{0};
 

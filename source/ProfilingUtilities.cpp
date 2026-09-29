@@ -21,12 +21,11 @@ void printTimeElapsed(const char * label, uint64_t elapsed, uint64_t total_elaps
 
 void printTimeElapsed(const ScopeData& data, uint64_t total_elapsed)
 {
-    uint64_t raw_elapsed = data.elapsed - data.elapsed_children;
-    double percent = 100.0 * (double(raw_elapsed) / double(total_elapsed));
-    printf("%s[%llu]: %llu (%0.2f%%", data.name.c_str(), data.hit_count, raw_elapsed, percent);
-    if (data.elapsed_children)
+    double percent = 100.0 * (double(data.elapsed_exclusive) / double(total_elapsed));
+    printf("%s[%llu]: %llu (%0.2f%%", data.name.c_str(), data.hit_count, data.elapsed_exclusive, percent);
+    if (data.elapsed_inclusive != data.elapsed_exclusive)
     {
-        double percent_with_children = 100.0 * (double(data.elapsed) / double(total_elapsed));
+        double percent_with_children = 100.0 * (double(data.elapsed_inclusive) / double(total_elapsed));
         printf(", %.2f%% w/children", percent_with_children);
     }
     printf(")\n");
@@ -52,7 +51,14 @@ Scope::Scope(const uint32_t *map_key) : key_{map_key}
     parent_key_ = GlobalParent;
     GlobalParent = map_key;
 
-    begin = readCpuTimer();
+    size_t existing_key = findExistingKeyIndex(key_);
+    if (existing_key != Scope::InvalidKey)
+    {
+        auto& data = GlobalProfiler.scope_data_values[existing_key];
+        old_elapsed_inclusive_ = data.elapsed_inclusive;
+    }
+
+    begin_ = readCpuTimer();
 }
 
 Scope::~Scope()
@@ -65,7 +71,7 @@ Scope::~Scope()
 
 void Scope::close()
 {
-    uint64_t elapsed = readCpuTimer() - begin;
+    uint64_t elapsed = readCpuTimer() - begin_;
 
     GlobalParent = parent_key_;
 
@@ -76,12 +82,13 @@ void Scope::close()
         if (key == parent_key_)
         {
             auto& parent_scoped_data = GlobalProfiler.scope_data_values[key_index];
-            parent_scoped_data.elapsed_children += elapsed;
+            parent_scoped_data.elapsed_exclusive -= elapsed;
         }
         if (key == key_)
         {
             auto& key_scoped_data = GlobalProfiler.scope_data_values[key_index];
-            key_scoped_data.elapsed += elapsed;
+            key_scoped_data.elapsed_exclusive += elapsed;
+            key_scoped_data.elapsed_inclusive = old_elapsed_inclusive_ + elapsed;
             key_scoped_data.hit_count += 1;
         }
     }
@@ -129,7 +136,7 @@ void printStats()
     for (const auto& scope : GlobalProfiler.scope_data_values)
     {
         printTimeElapsed(scope, total_elapsed);
-        total_scopes_elapsed += (scope.elapsed - scope.elapsed_children);
+        total_scopes_elapsed += scope.elapsed_exclusive;
     }
     printTimeElapsed("Scopes total", total_scopes_elapsed, total_elapsed);
 }

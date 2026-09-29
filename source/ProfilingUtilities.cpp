@@ -22,7 +22,7 @@ void printTimeElapsed(const char * label, uint64_t elapsed, uint64_t total_elaps
 void printTimeElapsed(const ScopeData& data, uint64_t total_elapsed)
 {
     double percent = 100.0 * (double(data.elapsed_exclusive) / double(total_elapsed));
-    printf("%s[%llu]: %llu (%0.2f%%", data.name.c_str(), data.hit_count, data.elapsed_exclusive, percent);
+    printf("  %s[%llu]: %llu (%0.2f%%", data.name.c_str(), data.hit_count, data.elapsed_exclusive, percent);
     if (data.elapsed_inclusive != data.elapsed_exclusive)
     {
         double percent_with_children = 100.0 * (double(data.elapsed_inclusive) / double(total_elapsed));
@@ -46,13 +46,20 @@ size_t findExistingKeyIndex(const uint32_t* key)
 
 }
 
-Scope::Scope(const uint32_t *map_key) : key_{map_key}
+Scope::Scope(const uint32_t *map_key, const char* name) : key_{map_key}
 {
     parent_key_ = GlobalParent;
     GlobalParent = map_key;
 
-    size_t existing_key = findExistingKeyIndex(key_);
-    if (existing_key != Scope::InvalidKey)
+    if (const auto existing_key = findExistingKeyIndex(key_); existing_key == Scope::InvalidKey)
+    {
+        auto& keys = GlobalProfiler.scope_data_keys;
+        keys.push_back(key_);
+
+        auto& data = GlobalProfiler.scope_data_values.emplace_back();
+        data.name = name;
+    }
+    else
     {
         auto& data = GlobalProfiler.scope_data_values[existing_key];
         old_elapsed_inclusive_ = data.elapsed_inclusive;
@@ -107,19 +114,6 @@ void beginProfile(uint64_t milliseconds_to_wait)
 void endProfile()
 {
     GlobalProfiler.elapsed = readCpuTimer() - GlobalProfiler.begin;
-}
-
-void beginScope(const uint32_t* scope_addr, const char* name)
-{
-    const auto existing_key = findExistingKeyIndex(scope_addr);
-    if (existing_key == Scope::InvalidKey)
-    {
-        auto& keys = GlobalProfiler.scope_data_keys;
-        keys.push_back(scope_addr);
-
-        auto& data = GlobalProfiler.scope_data_values.emplace_back();
-        data.name = name;
-    }
 }
 
 void printStats()

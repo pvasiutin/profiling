@@ -2,10 +2,34 @@
 
 #include <stdio.h>
 
+#include <string>
 #include <vector>
+
+#include "PlatformMetrics.h"
 
 namespace metrics
 {
+
+struct ScopeData
+{
+    uint64_t elapsed_inclusive{0}; // WITH children
+    uint64_t elapsed_exclusive{0}; // WITHOUT children
+
+    uint64_t hit_count{0};
+
+    std::string name;
+};
+
+struct Profiler
+{
+    uint64_t begin{0};
+    uint64_t elapsed{0};
+
+    uint64_t cpu_frequency{0};
+
+    std::vector<ScopeData> scope_data_values;
+    std::vector<const uint32_t*> scope_data_keys;
+};
 
 static Profiler GlobalProfiler;
 static const uint32_t* GlobalParent{0};

@@ -10,12 +10,6 @@ struct Foo
 {
     size_t bar{};
     size_t buzz{};
-
-    void printVals()
-    {
-        printf("bar: %llu\n", bar);
-        printf("buzz: %llu\n", buzz);
-    }
 };
 
 void uniquePtrCall()
@@ -65,6 +59,9 @@ void wrappedRecursion(size_t times)
     std::lock_guard lock(m);
     recursiveCall(times);
 }
+
+void multiThreadedCalls()
+{}
 
 int main(int arg_count, char** args)
 {

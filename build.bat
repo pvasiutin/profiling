@@ -7,7 +7,7 @@ set BUILD_DIR=%PROJECT_DIR%\build
 set SRC_DIR=%PROJECT_DIR%\source
 set SOURCES=%SRC_DIR%\main.cpp %SRC_DIR%\PlatformMetrics.cpp %SRC_DIR%\ProfilingUtilities.cpp
 set CL_FLAGS=/nologo /std:c++20 /EHsc /Zi /W4 /Od /Fe%APP_NAME%
-set ADDITIONAL_INCLUDE_DIRS=/I%PROJECT_DIR%\source
+set ADDITIONAL_INCLUDE_DIRS=%PROJECT_DIR%\source
 set LINKER_FLAGS=/INCREMENTAL:NO 
 
 ::
